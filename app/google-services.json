@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "202086049598",
+    "firebase_url": "https://notifier-a756e.firebaseio.com",
+    "project_id": "notifier-a756e",
+    "storage_bucket": "notifier-a756e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:202086049598:android:62944662981d3710",
+        "android_client_info": {
+          "package_name": "k.mihir.cloud.notifier"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "202086049598-cane8mcibhdpffkapkvftpbklsnlhnmg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "k.mihir.cloud.notifier",
+            "certificate_hash": "60121cf23a9dbe1edafe431ee48a687e1475ee94"
+          }
+        },
+        {
+          "client_id": "202086049598-oi566lg2sgpbh1jit1nlchg6dqqld26d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhD7KiJIe7MEnwKXu5xCzaBw-pJsKgD38"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "202086049598-oi566lg2sgpbh1jit1nlchg6dqqld26d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
