@@ -33,7 +33,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -68,21 +67,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     FusedLocationProviderClient mFusedLocationProviderClient;
     LocationManager locationManager ;
     DatabaseReference databaseReference;
-    String lat,lang,duration;
+    String lat,lang,duration,distance;
     FirebaseInstanceId instanceId ;
     String notifLat,notifLongi,notifAnimal;
     List<LatLng> points =new ArrayList<>();
     SharedPreferences sp;
-    TextView mapTV;
-    CardView cardView;
+    TextView mapTV,mapLengthTV;
+    CardView cardView,dCard;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         mapTV=findViewById(R.id.mapTV);
+        mapLengthTV=findViewById(R.id.mapLengthTV);
         cardView=findViewById(R.id.durationCardView);
+        dCard=findViewById(R.id.distanceCardView);
         cardView.setVisibility(View.INVISIBLE);
+        dCard.setVisibility(View.INVISIBLE);
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -103,21 +105,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         databaseReference = FirebaseDatabase.getInstance().getReference();
+        uploadLatLang();
     }
 
     private void drawRoute() {
-        PolygonOptions polygonOptions = new PolygonOptions();
         sp = getSharedPreferences("latlang",MODE_PRIVATE);
-
         points.add(new LatLng(Double.parseDouble(sp.getString("lat","")),Double.parseDouble(sp.getString("longi",""))));
         points.add(new LatLng(Double.parseDouble(notifLat),Double.parseDouble(notifLongi)));
-        polygonOptions.addAll(points);
-        polygonOptions.strokeWidth(15);
-        polygonOptions.geodesic(true);
-
-
-
-
     }
 
     private void getLocationPermission()    {
@@ -179,24 +173,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 location.addOnCompleteListener(new OnCompleteListener() {
                     @Override
                     public void onComplete(@NonNull Task task) {
-                        if (task.isSuccessful() && (location != null)) {
+                        if (task.isSuccessful()) {
                             Log.d(TAG, "onComplete: found location! ");
                             Location currentLocation = (Location) task.getResult();
-                             Log.d(TAG, "onComplete: location ==> " + currentLocation.getProvider()+currentLocation.getLatitude()+currentLocation.getLongitude());
+                            Log.d(TAG, "onComplete: location ==> " + currentLocation.getProvider() + currentLocation.getLatitude() + currentLocation.getLongitude());
                             moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()),
                                     DEFAULT_ZOOM,
                                     "My Location");
-                                lat= String.valueOf(currentLocation.getLatitude());
-                                lang = String.valueOf(currentLocation.getLongitude());
-                                sp = getSharedPreferences("latlang",MODE_PRIVATE);
-                                sp.edit().putString("lat",lat).apply();
-                                sp.edit().putString("longi",lang).apply();
-                                if(points.size()>0){
-
-                                    String url = getDirectionsUrl(points.get(0), points.get(1));
-
-                                    DownloadTask downloadTask = new DownloadTask();
-                                    downloadTask.execute(url);
+                            lat = String.valueOf(currentLocation.getLatitude());
+                            lang = String.valueOf(currentLocation.getLongitude());
+                            sp = getSharedPreferences("latlang", MODE_PRIVATE);
+                            sp.edit().putString("lat", lat).apply();
+                            sp.edit().putString("longi", lang).apply();
+                            if (points.size() > 0) {
+                                String url = getDirectionsUrl(points.get(0), points.get(1));
+                                DownloadTask downloadTask = new DownloadTask();
+                                downloadTask.execute(url);
 
                                    /* PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
                                     for (int z = 0; z < points.size(); z++) {
@@ -205,12 +197,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     }
                                     Polyline line = mMap.addPolyline(options);
                                     //mMap.addPolyline(new PolylineOptions().addAll(points).geodesic(true)); */
-                                }
-
+                            }
                         } else {
                             Log.d(TAG, "onComplete: current location is null");
                             Toast.makeText(MapsActivity.this, "unable to get current location", Toast.LENGTH_SHORT).show();
                         }
+
                     }
                 });
             }
@@ -220,12 +212,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void uploadLatLang() {
-        lat.substring(0,4);
-        lang.substring(0,4);
         String token = FirebaseInstanceId.getInstance().getToken();
-       // String key = databaseReference.child("Users").push().getKey();
-       // databaseReference.child("Users").child(key).setValue((myFirebaseInstanceIDService.getToken()));
-       // databaseReference.child("Locations").child(lat).child(lang).child(token).setValue("fcm");
+        String key = databaseReference.child("Users").push().getKey();
+        databaseReference.child("Users").child(key).setValue(token);
     }
 
     public boolean isServicesOK() {
@@ -397,19 +386,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String, String>>>> {
-
         // Parsing the data in non-ui thread
         @Override
         protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
-
             JSONObject jObject;
             List<List<HashMap<String, String>>> routes = null;
-
             try {
                 jObject = new JSONObject(jsonData[0]);
                 DirectionsJSONParser parser = new DirectionsJSONParser();
                 routes = parser.parse(jObject);
                 if(parser.getDuration()!=null){
+                    distance=parser.getDistance();
                     duration=parser.getDuration();
                 }
             } catch (Exception e) {
@@ -446,13 +433,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
             if(duration!=null){
+                dCard.setVisibility(View.VISIBLE);
                 cardView.setVisibility(View.VISIBLE);
                 mapTV.setText("ETA: "+duration);
+                mapLengthTV.setText("Distance: "+distance);
             }
             mMap.addPolyline(lineOptions);
         }
     }
-
 
     @Override
     protected void onResume() {
